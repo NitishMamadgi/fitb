@@ -158,6 +158,11 @@ export default function App() {
     setShowHome(true);
   };
 
+  // Add effect to exit QuizRunner when sidebar selection changes
+  useEffect(() => {
+    setActiveQuiz(null);
+  }, [selected.notebook, selected.section, selected.part]);
+
   return (
     <div className="w-screen h-screen bg-gray-100 overflow-x-hidden">
       {/* Header Bar */}

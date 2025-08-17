@@ -48,6 +48,7 @@ export default function QuizRunner({ quiz, onBack }) {
             const blanks = getBlanks(qObj);
             // Split question text by blanks
             let parts = qObj.q.split(/___+/);
+            const showAllAnswers = submitted;
             return (
               <div key={qIdx} className="mb-6 p-3 border rounded bg-white text-sm">
                 <div className="mb-2 font-semibold">Question {qIdx + 1}:</div>
@@ -68,14 +69,16 @@ export default function QuizRunner({ quiz, onBack }) {
                     </React.Fragment>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  className="px-2 py-1 bg-gray-200 rounded text-xs"
-                  onClick={() => handleShowAnswer(qIdx)}
-                >
-                  {showAnswers[qIdx] ? "Hide Answer" : "Show Answer"}
-                </button>
-                {showAnswers[qIdx] && (
+                {!showAllAnswers ? (
+                  <button
+                    type="button"
+                    className="px-2 py-1 bg-gray-200 rounded text-xs"
+                    onClick={() => handleShowAnswer(qIdx)}
+                  >
+                    {showAnswers[qIdx] ? "Hide Answer" : "Show Answer"}
+                  </button>
+                ) : null}
+                {(showAnswers[qIdx] || showAllAnswers) && (
                   <div className="mt-2 text-green-700 text-xs">
                     {blanks.map((b, i) => (
                       <span key={b} className="mr-2">Answer {i + 1}: <b>{qObj[b]}</b></span>
