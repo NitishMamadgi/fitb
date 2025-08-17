@@ -5,6 +5,7 @@ import { validateQuizJSON } from "./utils/validator";
 import UploadPreview from "./UploadPreview";
 import QuizList from "./QuizList";
 import HierarchicalSidebar from "./HierarchicalSidebar";
+import QuizRunner from "./QuizRunner";
 
 export default function App() {
   const [preview, setPreview] = useState(null);
@@ -12,6 +13,7 @@ export default function App() {
   const [quizzes, setQuizzes] = useState([]);
   const [selected, setSelected] = useState({ notebook: null, section: null, part: null });
   const [search, setSearch] = useState("");
+  const [activeQuiz, setActiveQuiz] = useState(null);
 
   useEffect(() => {
     dbPromise
@@ -37,6 +39,20 @@ export default function App() {
     return btoa(JSON.stringify(obj)).slice(0, 16);
   }
 
+  // Filter quizzes by notebook/section/part and search
+  const filteredQuizzes = quizzes.filter(q => {
+    const matchesNotebook = selected.notebook ? q.notebook === selected.notebook : true;
+    const matchesSection = selected.section ? q.section === selected.section : true;
+    const matchesPart = selected.part ? q.part === selected.part : true;
+    const matchesSearch =
+      q.title.toLowerCase().includes(search.toLowerCase()) ||
+      (q.notebook && q.notebook.toLowerCase().includes(search.toLowerCase())) ||
+      (q.section && q.section.toLowerCase().includes(search.toLowerCase())) ||
+      (q.part && q.part.toLowerCase().includes(search.toLowerCase()));
+    return matchesNotebook && matchesSection && matchesPart && matchesSearch;
+  });
+
+  // After saving a quiz, auto-select and show QuizRunner for the saved quiz
   const handleSave = async (fields) => {
     if (preview && validation && validation.valid) {
       const now = Date.now();
@@ -60,6 +76,13 @@ export default function App() {
       setValidation(null);
       alert("Quiz saved!");
       fetchQuizzes(); // Refresh quiz list
+      setSelected({
+        notebook: quizToSave.notebook,
+        section: quizToSave.section,
+        part: quizToSave.part
+      });
+      setActiveQuiz(quizToSave);
+      setShowHome(false);
     }
   };
 
@@ -135,19 +158,6 @@ export default function App() {
     setShowHome(true);
   };
 
-  // Filter quizzes by notebook/section/part and search
-  const filteredQuizzes = quizzes.filter(q => {
-    const matchesNotebook = selected.notebook ? q.notebook === selected.notebook : true;
-    const matchesSection = selected.section ? q.section === selected.section : true;
-    const matchesPart = selected.part ? q.part === selected.part : true;
-    const matchesSearch =
-      q.title.toLowerCase().includes(search.toLowerCase()) ||
-      (q.notebook && q.notebook.toLowerCase().includes(search.toLowerCase())) ||
-      (q.section && q.section.toLowerCase().includes(search.toLowerCase())) ||
-      (q.part && q.part.toLowerCase().includes(search.toLowerCase()));
-    return matchesNotebook && matchesSection && matchesPart && matchesSearch;
-  });
-
   return (
     <div className="w-screen h-screen bg-gray-100 overflow-x-hidden">
       {/* Header Bar */}
@@ -162,6 +172,7 @@ export default function App() {
               setTextInput("");
               setTextError("");
               setSelected({ notebook: null, section: null, part: null }); // Reset sidebar selection
+              setActiveQuiz(null);
             }}
           >Home</button>
           <h1 className="text-2xl font-bold text-blue-700 tracking-tight">FITB App</h1>
@@ -180,11 +191,13 @@ export default function App() {
         />
         {/* Main Area */}
         <div className="flex-1 p-8">
-          {showHome ? (
+          {activeQuiz ? (
+            <QuizRunner quiz={activeQuiz} onBack={() => setActiveQuiz(null)} />
+          ) : showHome ? (
             (selected.notebook || selected.section || selected.part)
               ? (
                 filteredQuizzes.length > 0 ? (
-                  <QuizList quizzes={filteredQuizzes} onDelete={handleDeleteQuiz} />
+                  <QuizList quizzes={filteredQuizzes} onDelete={handleDeleteQuiz} onStart={quiz => setActiveQuiz(quiz)} />
                 ) : (
                   <div className="text-gray-500 text-sm">No quizzes found for this selection.</div>
                 )
@@ -235,8 +248,8 @@ export default function App() {
             />
           )}
           {/* Only show QuizList if sidebar selection is active and there are quizzes */}
-          {!showHome && (selected.notebook || selected.section || selected.part) && filteredQuizzes.length > 0 && (
-            <QuizList quizzes={filteredQuizzes} onDelete={handleDeleteQuiz} />
+          {!showHome && (selected.notebook || selected.section || selected.part) && filteredQuizzes.length > 0 && !activeQuiz && (
+            <QuizList quizzes={filteredQuizzes} onDelete={handleDeleteQuiz} onStart={quiz => setActiveQuiz(quiz)} />
           )}
         </div>
       </div>
