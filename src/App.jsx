@@ -197,7 +197,22 @@ export default function App() {
         {/* Main Area */}
         <div className="flex-1 p-8">
           {activeQuiz ? (
-            <QuizRunner quiz={activeQuiz} onBack={() => setActiveQuiz(null)} />
+            <QuizRunner
+              quiz={activeQuiz}
+              onBack={() => setActiveQuiz(null)}
+              onQuizUpdate={async (updatedQuiz) => {
+                // Persist updated quiz to IndexedDB
+                const db = await dbPromise;
+                const now = Date.now();
+                const quizToSave = {
+                  ...updatedQuiz,
+                  updatedAt: now,
+                };
+                await db.put("quizzes", quizToSave);
+                setActiveQuiz(quizToSave);
+                fetchQuizzes();
+              }}
+            />
           ) : showHome ? (
             (selected.notebook || selected.section || selected.part)
               ? (
