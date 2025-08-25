@@ -183,21 +183,28 @@ export default function QuizRunner({ quiz, onBack, onQuizUpdate }) {
                 ) : (
                   <div>
                     <div className="flex flex-wrap items-center mb-2">
-                      {parts.map((part, i) => (
-                        <React.Fragment key={i}>
-                          <span>{part}</span>
-                          {i < blanks.length && (
-                            <input
-                              type="text"
-                              className="mx-1 px-2 py-1 border rounded text-xs w-24"
-                              tabIndex={i + 1}
-                              disabled={submitted}
-                              value={answers[`${qIdx}_${blanks[i]}`] || ""}
-                              onChange={e => handleChange(qIdx, blanks[i], e.target.value)}
-                            />
-                          )}
-                        </React.Fragment>
-                      ))}
+                      {parts.map((part, i) => {
+                        // Calculate global blank index for tabIndex
+                        let globalBlankIdx = 0;
+                        for (let q = 0; q < qIdx; q++) {
+                          globalBlankIdx += getBlanks(localQuiz.questions[q]).length;
+                        }
+                        return (
+                          <React.Fragment key={i}>
+                            <span>{part}</span>
+                            {i < blanks.length && (
+                              <input
+                                type="text"
+                                className="mx-1 px-2 py-1 border rounded text-xs w-24"
+                                tabIndex={globalBlankIdx + i + 1}
+                                disabled={submitted}
+                                value={answers[`${qIdx}_${blanks[i]}`] || ""}
+                                onChange={e => handleChange(qIdx, blanks[i], e.target.value)}
+                              />
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </div>
                     {!showAllAnswers ? (
                       <button
