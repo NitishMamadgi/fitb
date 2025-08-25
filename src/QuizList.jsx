@@ -11,9 +11,12 @@ export default function QuizList({ quizzes, onDelete, onStart }) {
       <h2 className="text-lg font-bold mb-4">Saved Quizzes</h2>
       <ul className="space-y-4">
         {quizzes.map((quiz) => (
-          <li key={quiz.id} className="p-4 bg-white rounded shadow flex items-center justify-between">
+          <li key={quiz.id} className={`p-4 rounded shadow flex items-center justify-between ${quiz.isCodeQuiz ? "bg-green-50 border-l-4 border-green-500" : "bg-white"}`}>
             <div>
-              <div className="font-semibold text-blue-700">{quiz.title}</div>
+              <div className={`font-semibold ${quiz.isCodeQuiz ? "text-green-700" : "text-blue-700"}`}>
+                {quiz.title}
+                {quiz.isCodeQuiz && <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 rounded text-xs font-bold">Code Quiz</span>}
+              </div>
               <div className="text-sm text-gray-600">Folder: {quiz.folder}</div>
               <div className="text-xs text-gray-400">Questions: {quiz.questions.length}</div>
             </div>

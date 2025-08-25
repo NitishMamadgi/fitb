@@ -3,15 +3,17 @@ import React from "react";
 
 export default function HierarchicalSidebar({ quizzes, selected, onSelect, search, onSearch }) {
   // Extract unique notebooks, sections, parts
-  const notebooks = Array.from(new Set(quizzes.map(q => q.notebook))).sort();
+  // Filter out empty notebook/section/part (for code practice quizzes)
+  const validQuizzes = quizzes.filter(q => q.notebook && q.section && q.part);
+  const notebooks = Array.from(new Set(validQuizzes.map(q => q.notebook))).sort();
   const sections = selected.notebook
-    ? Array.from(new Set(quizzes.filter(q => q.notebook === selected.notebook).map(q => q.section))).sort()
+    ? Array.from(new Set(validQuizzes.filter(q => q.notebook === selected.notebook).map(q => q.section))).sort()
     : [];
   const parts = selected.section
-    ? Array.from(new Set(quizzes.filter(q => q.notebook === selected.notebook && q.section === selected.section).map(q => q.part))).sort()
+    ? Array.from(new Set(validQuizzes.filter(q => q.notebook === selected.notebook && q.section === selected.section).map(q => q.part))).sort()
     : [];
   const quizTitles = selected.part
-    ? quizzes.filter(q => q.notebook === selected.notebook && q.section === selected.section && q.part === selected.part)
+    ? validQuizzes.filter(q => q.notebook === selected.notebook && q.section === selected.section && q.part === selected.part)
     : [];
 
   return (

@@ -6,6 +6,8 @@ import UploadPreview from "./UploadPreview";
 import QuizList from "./QuizList";
 import HierarchicalSidebar from "./HierarchicalSidebar";
 import QuizRunner from "./QuizRunner";
+import CodeQuizRunner from "./CodeQuizRunner";
+import CodePractice from "./CodePractice";
 
 export default function App() {
   const [preview, setPreview] = useState(null);
@@ -97,6 +99,7 @@ export default function App() {
   const [textInput, setTextInput] = useState("");
   const [textError, setTextError] = useState("");
   const [showHome, setShowHome] = useState(true);
+  const [mode, setMode] = useState("fitb"); // "fitb" or "code"
 
   // Handle parsing from text area
   const handleTextParse = () => {
@@ -167,20 +170,34 @@ export default function App() {
     <div className="w-screen h-screen bg-gray-100 overflow-x-hidden">
       {/* Header Bar */}
       <div className="flex items-center justify-between px-6 py-4 bg-white shadow-sm border-b">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 w-full">
+          <h1 className="text-2xl font-bold text-blue-700 tracking-tight mr-6">FITB App</h1>
           <button
-            className="px-3 py-1 bg-blue-600 text-white rounded font-bold"
+            className={`px-4 py-2 rounded font-bold ${mode === "fitb" ? "bg-blue-600 text-white" : "bg-gray-200 text-blue-700"}`}
             onClick={() => {
               setShowHome(true);
               setPreview(null);
               setValidation(null);
               setTextInput("");
               setTextError("");
-              setSelected({ notebook: null, section: null, part: null }); // Reset sidebar selection
+              setSelected({ notebook: null, section: null, part: null });
               setActiveQuiz(null);
+              setMode("fitb");
             }}
-          >Home</button>
-          <h1 className="text-2xl font-bold text-blue-700 tracking-tight">FITB App</h1>
+          >fitb</button>
+          <button
+            className={`px-4 py-2 rounded font-bold ${mode === "code" ? "bg-green-600 text-white" : "bg-gray-200 text-green-700"}`}
+            onClick={() => {
+              setShowHome(true);
+              setPreview(null);
+              setValidation(null);
+              setTextInput("");
+              setTextError("");
+              setSelected({ notebook: null, section: null, part: null });
+              setActiveQuiz(null);
+              setMode("code");
+            }}
+          >code practice</button>
         </div>
       </div>
 
@@ -197,22 +214,40 @@ export default function App() {
         {/* Main Area */}
         <div className="flex-1 p-8">
           {activeQuiz ? (
-            <QuizRunner
-              quiz={activeQuiz}
-              onBack={() => setActiveQuiz(null)}
-              onQuizUpdate={async (updatedQuiz) => {
-                // Persist updated quiz to IndexedDB
-                const db = await dbPromise;
-                const now = Date.now();
-                const quizToSave = {
-                  ...updatedQuiz,
-                  updatedAt: now,
-                };
-                await db.put("quizzes", quizToSave);
-                setActiveQuiz(quizToSave);
-                fetchQuizzes();
-              }}
-            />
+            activeQuiz.isCodeQuiz ? (
+              <CodeQuizRunner
+                quiz={activeQuiz}
+                onBack={() => setActiveQuiz(null)}
+                onQuizUpdate={async (updatedQuiz) => {
+                  const db = await dbPromise;
+                  const now = Date.now();
+                  const quizToSave = {
+                    ...updatedQuiz,
+                    updatedAt: now,
+                  };
+                  await db.put("quizzes", quizToSave);
+                  setActiveQuiz(quizToSave);
+                  fetchQuizzes();
+                }}
+              />
+            ) : (
+              <QuizRunner
+                quiz={activeQuiz}
+                onBack={() => setActiveQuiz(null)}
+                onQuizUpdate={async (updatedQuiz) => {
+                  // Persist updated quiz to IndexedDB
+                  const db = await dbPromise;
+                  const now = Date.now();
+                  const quizToSave = {
+                    ...updatedQuiz,
+                    updatedAt: now,
+                  };
+                  await db.put("quizzes", quizToSave);
+                  setActiveQuiz(quizToSave);
+                  fetchQuizzes();
+                }}
+              />
+            )
           ) : showHome ? (
             (selected.notebook || selected.section || selected.part)
               ? (
@@ -223,42 +258,71 @@ export default function App() {
                 )
               )
               : (
-                <>
-                  {/* Example prompt for LLM */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-bold mb-2">Example prompt for LLM (copy and use):</label>
-                    <pre className="bg-gray-200 p-3 rounded text-xs whitespace-pre-wrap select-all" style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(examplePrompt)}>{examplePrompt}</pre>
-                  </div>
-                  {/* Text area for direct input */}
-                  <div className="mb-6">
-                    <div className="flex items-center mb-2 gap-2">
-                      <label className="block text-sm font-bold">Paste quiz in required format <span className="font-bold mx-1">OR</span> upload a .json/.txt file:</label>
-                      <label htmlFor="file-upload" className="px-2 py-1 bg-blue-600 text-white rounded cursor-pointer font-semibold text-xs">Upload Quiz</label>
-                      <input
-                        id="file-upload"
-                        type="file"
-                        accept=".txt,.json"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
+                mode === "fitb" ? (
+                  <>
+                    {/* Example prompt for LLM */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-bold mb-2">Example prompt for LLM (copy and use):</label>
+                      <pre className="bg-gray-200 p-3 rounded text-xs whitespace-pre-wrap select-all" style={{ cursor: "pointer" }} onClick={() => navigator.clipboard.writeText(examplePrompt)}>{examplePrompt}</pre>
                     </div>
-                    <textarea
-                      className="w-full h-40 p-3 border rounded bg-white text-sm font-mono"
-                      value={textInput}
-                      onChange={e => setTextInput(e.target.value)}
-                      placeholder="Paste your quiz here (see example prompt above)..."
-                    />
-                    <button
-                      className="mt-2 px-4 py-2 bg-blue-600 text-white rounded"
-                      onClick={handleTextParse}
-                    >
-                      Parse & Preview
-                    </button>
-                    {textError && <div className="mt-2 text-red-600 text-sm">{textError}</div>}
-                  </div>
-                </>
+                    {/* Text area for direct input */}
+                    <div className="mb-6">
+                      <div className="flex items-center mb-2 gap-2">
+                        <label className="block text-sm font-bold">Paste quiz in required format <span className="font-bold mx-1">OR</span> upload a .json/.txt file:</label>
+                        <label htmlFor="file-upload" className="px-2 py-1 bg-blue-600 text-white rounded cursor-pointer font-semibold text-xs">Upload Quiz</label>
+                        <input
+                          id="file-upload"
+                          type="file"
+                          accept=".txt,.json"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </div>
+                      <textarea
+                        className="w-full h-40 p-3 border rounded bg-white text-sm font-mono"
+                        value={textInput}
+                        onChange={e => setTextInput(e.target.value)}
+                        placeholder="Paste your quiz here (see example prompt above)..."
+                      />
+                      <button
+                        className="mt-2 px-4 py-2 bg-blue-600 text-white rounded"
+                        onClick={handleTextParse}
+                      >
+                        Parse & Preview
+                      </button>
+                      {textError && <div className="mt-2 text-red-600 text-sm">{textError}</div>}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-6">
+                      <label className="block text-sm font-bold mb-2">Code Practice Instructions:</label>
+                      <pre className="bg-green-100 p-3 rounded text-xs whitespace-pre-wrap select-all">
+{`Paste your Python code below. All code lines will be converted to blanks; comments will be shown as hints. When you take the quiz, type the code line by line. Each character will turn green if correct, red if wrong. Press Enter to move to the next line.`}
+                      </pre>
+                    </div>
+                    <div className="mb-6">
+                      <CodePractice quizzes={quizzes} onSave={async (quizObj) => {
+                        const now = Date.now();
+                        const quizToSave = {
+                          ...quizObj,
+                          title: quizObj.title || "Code Practice Quiz",
+                          id: "code-" + now,
+                          createdAt: now,
+                          updatedAt: now,
+                          isCodeQuiz: true,
+                        };
+                        await dbPromise.then(db => db.put("quizzes", quizToSave));
+                        alert("Code quiz saved!");
+                        fetchQuizzes();
+                        setShowHome(false);
+                        setActiveQuiz(quizToSave);
+                      }} />
+                    </div>
+                  </>
+                )
               )
-          ) : (
+            ) : (
             <UploadPreview
               preview={preview}
               validation={validation}
