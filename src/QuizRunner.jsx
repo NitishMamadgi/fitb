@@ -9,6 +9,7 @@ export default function QuizRunner({ quiz, onBack, onQuizUpdate }) {
   const [editQuestion, setEditQuestion] = useState("");
   const [editBlanks, setEditBlanks] = useState({});
   const [localQuiz, setLocalQuiz] = useState(quiz);
+  const [editError, setEditError] = useState("");
 
   if (!localQuiz) return null;
 
@@ -50,8 +51,15 @@ export default function QuizRunner({ quiz, onBack, onQuizUpdate }) {
     setEditBlanks(blankValues);
   };
 
-  // Save edited question
+  // Save edited question with validation
   const handleSaveEdit = (qIdx) => {
+    const blankCount = (editQuestion.match(/___+/g) || []).length;
+    const answerCount = Object.keys(editBlanks).length;
+    if (blankCount !== answerCount) {
+      setEditError(`Number of blanks (___) in question (${blankCount}) must match number of answers (${answerCount}).`);
+      return;
+    }
+    setEditError("");
     const updatedQuestions = [...localQuiz.questions];
     updatedQuestions[qIdx] = {
       q: editQuestion,
@@ -68,6 +76,7 @@ export default function QuizRunner({ quiz, onBack, onQuizUpdate }) {
     setEditIdx(null);
     setEditQuestion("");
     setEditBlanks({});
+    setEditError("");
   };
 
   // Handle blanks change in edit mode
@@ -113,7 +122,7 @@ export default function QuizRunner({ quiz, onBack, onQuizUpdate }) {
                       value={editQuestion}
                       onChange={e => setEditQuestion(e.target.value)}
                     />
-                    {blanks.map((b, i) => (
+                    {Object.keys(editBlanks).map((b, i) => (
                       <div key={b} className="mb-1 flex items-center">
                         <span className="mr-2">Answer {i + 1}:</span>
                         <input
@@ -122,8 +131,38 @@ export default function QuizRunner({ quiz, onBack, onQuizUpdate }) {
                           value={editBlanks[b] || ""}
                           onChange={e => handleEditBlankChange(b, e.target.value)}
                         />
+                        <button
+                          type="button"
+                          className="ml-2 text-red-500 text-xs px-2 py-1 border rounded"
+                          onClick={() => {
+                            const newBlanks = { ...editBlanks };
+                            delete newBlanks[b];
+                            setEditBlanks(newBlanks);
+                          }}
+                        >Remove</button>
+                        <button
+                          type="button"
+                          className="ml-2 text-green-500 text-xs px-2 py-1 border rounded"
+                          title="Add blank/answer after this"
+                          onClick={() => {
+                            const keys = Object.keys(editBlanks);
+                            const newBlanks = {};
+                            let inserted = false;
+                            for (let idx = 0; idx < keys.length; idx++) {
+                              newBlanks[keys[idx]] = editBlanks[keys[idx]];
+                              if (keys[idx] === b && !inserted) {
+                                // Insert new blank after current
+                                const newKey = "a" + (keys.length + 1);
+                                newBlanks[newKey] = "";
+                                inserted = true;
+                              }
+                            }
+                            setEditBlanks(newBlanks);
+                          }}
+                        >+</button>
                       </div>
                     ))}
+                    {editError && <div className="text-red-600 text-xs mb-2">{editError}</div>}
                     <div className="mt-2 flex gap-2">
                       <button
                         type="button"
